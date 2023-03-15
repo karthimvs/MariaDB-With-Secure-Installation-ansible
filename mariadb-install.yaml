@@ -1,0 +1,68 @@
+---
+- hosts: testserver
+  become: true
+  remote_user: ubuntu
+  vars:
+    mariadb_root_password: 'Admin@12345'
+
+  tasks:
+    - name: Install Mariadb
+      apt:
+        name:
+          - python3-pip
+          - mariadb-server
+        state: present
+
+    - name: Installing pymsql module using pip
+      pip:
+        name: pymysql
+        state: present
+
+    - name: Secure MariaDB installation
+      mysql_user:
+        login_user: root
+        login_password: ""
+        name: root
+        host_all: true
+        password: "{{ mariadb_root_password }}"
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+        check_implicit_admin: true
+
+    - name: Remove anonymous user accounts
+      mysql_user:
+        login_user: root
+        login_password: "{{ mariadb_root_password }}"
+        name: ""
+        host_all: true
+        state: absent
+
+    - name: Remove Test Database
+      mysql_db:
+        login_user: root
+        login_password: "{{ mariadb_root_password }}"
+        name: test
+        state: absent
+
+    - name: Reload Privilege tables
+      mysql_db:
+        login_user: root
+        login_password: "{{ mariadb_root_password }}"
+        name: ""
+        query: FLUSH PRIVILEGES
+
+    - name: Create a new database for HDFC Bank
+      mysql_db:
+        login_user: root
+        login_password: "{{ mariadb_root_password }}"
+        name: HDFCYANGO
+        state: present
+
+    - name: Create new user for HDFC DB manage
+      mysql_user:
+        login_user: root
+        login_password: "{{ mariadb_root_password }}"
+        name: "sanjive"
+        host: "%"
+        password: "sanjive@123456"
+        priv: "HDFCYANGO.*:ALL"
+        state: present
